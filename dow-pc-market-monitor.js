@@ -1,5 +1,5 @@
 /**
- * 陶氏化学个人护理和化妆品市场情报系统
+ * Elaine专属个人护理和化妆品市场情报系统
  * GitHub Actions 专用版本
  * 
  * 目标用户：陶氏化学大中国区个人护理和化妆品事业部市场经理
@@ -10,7 +10,9 @@
  * - 个人护理和化妆品行业动态
  * - 竞争对手、产品创新、原材料、监管、消费者趋势、渠道变化
  * 
- * 推送时间：每周一、三、五早上8点
+ * 推送时间：每周二、周五早上8点
+ * 
+ * 信息时效性：过去3天（72小时）内发生/发布的市场信息
  * 
  * GitHub Actions 使用说明：
  * - 在仓库 Settings → Secrets and variables → Actions 中配置以下环境变量：
@@ -27,12 +29,13 @@ const axios = require('axios');
 // ========================================
 
 const FEISHU_CONFIG = {
-  APP_ID: process.env.FEISHU_APP_ID,
-  APP_SECRET: process.env.FEISHU_APP_SECRET,
-  GROUP_CHAT_ID: process.env.FEISHU_GROUP_CHAT_ID,
+  // 优先从环境变量读取（GitHub Actions使用），否则使用默认值（本地测试使用）
+  APP_ID: process.env.FEISHU_APP_ID || 'cli_a9fde8469cb89bde',
+  APP_SECRET: process.env.FEISHU_APP_SECRET || 'HYgtaXvdzfB3ROUL25UNPnQXf2WRFlMj',
+  GROUP_CHAT_ID: process.env.FEISHU_GROUP_CHAT_ID || 'oc_956963760a149d1d4c7a307c892b8643',
 };
 
-const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY;
+const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || 'ff4e24a1-14d2-44f4-8d8e-c71131631f24';
 
 // ========================================
 // 模型配置
@@ -67,32 +70,79 @@ async function searchMarketNews() {
   console.log('🔍 搜索个人护理和化妆品市场信息（仅限最新）...\n');
 
   const searchQueries = [
+    // ====== 中国市场动态（主市场） ======
     '中国化妆品行业 最新',
     '中国个人护理市场 最新',
     '中国化妆品监管 最新',
     '化妆品原料 最新',
-    '硅油 价格 最新',
+    '硅油 价格 最新',  // 陶氏化学核心产品相关
+    
+    // ====== 中国品牌动态（国货美妆） ======
+    '完美日记 最新',
+    '花西子 最新',
+    '珀莱雅 最新',
+    '薇诺娜 最新',
+    '自然堂 最新',
+    '毛戈平 最新',
+    '润百颜 最新',
+    '夸迪 最新',
+    '韩束 最新',
+    '可复美 最新',
+    
+    // ====== 全球巨头动态 ======
     '欧莱雅 中国 最新',
     '宝洁 个人护理 最新',
     '联合利华 中国 最新',
     '雅诗兰黛 最新',
     '资生堂 中国 最新',
+    
+    // ====== 新产品和创新 ======
     '化妆品新品发布 最新',
     '护肤技术 创新 最新',
     '个人护理原料 创新 最新',
     '功效护肤 最新',
+    
+    // ====== 消费者趋势 ======
     '成分党 化妆品 最新',
     '纯净美妆 最新',
     '抗衰老 趋势 最新',
     '敏感性肌肤 最新',
+    
+    // ====== 渠道变化 ======
     '化妆品直播 最新',
     '抖音美妆 最新',
     '化妆品私域 最新',
     '小红书 美妆 最新',
+    
+    // ====== 小红书爆款和热搜 ======
+    '小红书 爆款 化妆品 最新',
+    '小红书 热搜 护肤 最新',
+    '小红书 测评 美妆 最新',
+    '小红书 推荐 化妆品 最新',
+    '小红书 种草 美妆 最新',
+    '小红书 热门 成分 最新',
+    
+    // ====== 热门成分和新兴品类 ======
+    '玻色因 最新',
+    '胜肽 护肤 最新',
+    '视黄醇 A醇 最新',
+    '烟酰胺 最新',
+    '重组胶原蛋白 最新',
+    '玻尿酸 护肤 最新',
+    '早C晚A 最新',
+    '油皮护肤 最新',
+    '敏感肌护肤 最新',
+    '防晒喷雾 最新',
+    '美白精华 最新',
+    '安瓶护肤 最新',
+    
+    // ====== 东南亚市场（重要增长市场） ======
     '东南亚 化妆品 最新',
     '印尼 化妆品 最新',
     '泰国 美妆 最新',
     '越南 个人护理 最新',
+    
+    // ====== 欧美市场趋势（参考） ======
     '美国 美妆趋势 最新',
     '欧洲 化妆品 最新',
     'K-beauty 最新',
@@ -100,12 +150,13 @@ async function searchMarketNews() {
 
   const allResults = [];
 
+  // 获取当前时间，用于指定搜索时间范围
   const now = new Date();
   const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setDate(yesterday.getDate() - 3);
   
   const yesterday8am = new Date(now);
-  yesterday8am.setDate(yesterday8am.getDate() - 1);
+  yesterday8am.setDate(yesterday8am.getDate() - 3);
   yesterday8am.setHours(8, 0, 0, 0);
 
   const today8am = new Date(now);
@@ -115,7 +166,7 @@ async function searchMarketNews() {
   const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
   
   const timeRange = `${yesterdayDateStr} 08:00 到 ${todayDateStr} 08:00`;
-  console.log(`🕐 搜索时间范围：${timeRange}（最近24小时）\n`);
+  console.log(`🕐 搜索时间范围：${timeRange}（过去3天）\n`);
 
   for (const query of searchQueries) {
     try {
@@ -153,8 +204,14 @@ async function searchMarketNews() {
 
 ## 输出格式
 如果找到符合条件的信息，返回：
-【来源】标题 - 发生时间
-摘要内容（必须明确说明信息发生时间）
+【来源】标题 - 发生时间 | 原文链接（如果能找到）
+摘要内容（50-100字，必须明确说明信息发生时间）
+
+**要求**：
+1. 如果是长篇报道，给出50-100字的核心摘要，不要全文
+2. 必须包含明确的"事件发生时间"，而非"报道时间"
+3. 如果能找到原文链接，必须提供（格式：https://...）
+4. 每条信息控制在150字以内（含链接）
 
 如果该时间段内没有符合条件的信息，只回复：无最新信息
 
@@ -165,16 +222,18 @@ async function searchMarketNews() {
               content: `搜索关于"${query}"的最新市场信息。
 
 **严格要求**：
-1. 信息必须发生在 ${yesterdayDateStr} 08:00 到 ${todayDateStr} 08:00 之间
+1. 信息必须发生在 ${yesterdayDateStr} 08:00 到 ${todayDateStr} 08:00 之间（过去3天）
 2. 不要包含几天前、几周前、几月前发生的事件
 3. 如果不确定信息发生时间，不要包含
-4. 如果没有符合条件的信息，只回复"无最新信息"
+4. 每条信息控制在150字以内，长篇报道只给出50-100字摘要
+5. 如果能找到原文链接，必须提供（格式：https://...）
+6. 如果没有符合条件的信息，只回复"无最新信息"
 
 请返回符合条件的市场信息，或回复"无最新信息"。`
             }
           ],
           temperature: 0.1,
-          max_tokens: 400,
+          max_tokens: 350,
         },
         {
           headers: {
@@ -233,7 +292,7 @@ async function analyzeMarketTrends(newsResults) {
 
   const now = new Date();
   const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setDate(yesterday.getDate() - 3);
   
   const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
   const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
@@ -475,12 +534,12 @@ function formatFeishuMessage(data) {
     return {
       msg_type: 'text',
       content: JSON.stringify({
-        text: `🧪 陶氏化学个人护理和化妆品市场情报
+        text: `🧪 Elaine专属个人护理和化妆品市场情报
         
 ⏰ 更新时间：${data.analysisTime}（${data.dayOfWeek}）
-📅 推送周期：每周一、三、五早上8点
+📅 推送周期：每周二、周五早上8点
 
-📋 说明：本系统推送最近24小时内的个人护理和化妆品市场动态，特别关注中国市场，兼顾东南亚和欧美市场信息。
+📋 说明：本系统推送最近72小时（过去3天）内的个人护理和化妆品市场动态，特别关注中国市场，兼顾东南亚和欧美市场信息。
 
 暂无重要的市场动态或原材料价格波动，请稍后再试。`
       }),
@@ -494,7 +553,7 @@ function formatFeishuMessage(data) {
     header: {
       title: {
         tag: 'plain_text',
-        content: '🧪 陶氏化学个人护理和化妆品市场情报',
+        content: '🧪 Elaine专属个人护理和化妆品市场情报',
       },
       template: 'orange',
     },
@@ -503,7 +562,7 @@ function formatFeishuMessage(data) {
         tag: 'div',
         text: {
           tag: 'lark_md',
-          content: `**⏰ 更新时间**：${data.analysisTime}（${data.dayOfWeek}）\n**📅 推送周期**：每周一、三、五早上8点\n**⚠️ 时效性说明**：以下信息均发生在最近24小时内\n`,
+          content: `**⏰ 更新时间**：${data.analysisTime}（${data.dayOfWeek}）\n**📅 推送周期**：每周二、周五早上8点\n**⚠️ 时效性说明**：以下信息均发生在最近72小时（过去3天）内\n`,
         },
       },
       {
@@ -512,6 +571,7 @@ function formatFeishuMessage(data) {
     ],
   };
 
+  // 添加市场摘要
   if (data.marketSummary) {
     cardContent.elements.push({
       tag: 'div',
@@ -525,6 +585,7 @@ function formatFeishuMessage(data) {
     });
   }
 
+  // 添加市场趋势
   if (data.marketTrends && data.marketTrends.length > 0) {
     cardContent.elements.push({
       tag: 'div',
@@ -623,6 +684,7 @@ function formatFeishuMessage(data) {
     }
   }
 
+  // 添加原材料价格预警
   if (data.rawMaterialAlerts && data.rawMaterialAlerts.length > 0) {
     cardContent.elements.push({
       tag: 'div',
@@ -710,15 +772,15 @@ async function main() {
   try {
     const now = new Date();
     const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setDate(yesterday.getDate() - 3);
     
     const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
     const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
     console.log('========================================');
-    console.log('🧪 陶氏化学个人护理和化妆品市场情报系统');
+    console.log('🧪 Elaine专属个人护理和化妆品市场情报系统');
     console.log('========================================');
-    console.log('📅 推送周期：每周一、三、五早上8点');
+    console.log('📅 推送周期：每周二、周五早上8点');
     console.log(`⏰ 信息时间范围：${yesterdayDateStr} 08:00 - ${todayDateStr} 08:00`);
     console.log('');
     console.log('🎯 目标用户：陶氏化学大中国区个人护理和化妆品事业部市场经理');
@@ -744,15 +806,19 @@ async function main() {
 
     console.log(`🤖 使用模型: ${DOUBAO_MODEL}\n`);
 
+    // 步骤1：搜索市场信息
     const newsResults = await searchMarketNews();
     console.log('');
 
+    // 步骤2：分析市场趋势
     const analysisData = await analyzeMarketTrends(newsResults);
     console.log('');
 
+    // 步骤3：格式化飞书消息
     const message = formatFeishuMessage(analysisData);
     console.log('✅ 消息格式化成功\n');
 
+    // 步骤4：发送到飞书群
     await sendToFeishu(message);
 
     console.log('\n========================================');
@@ -777,4 +843,5 @@ async function main() {
   }
 }
 
+// 运行主程序
 main();
