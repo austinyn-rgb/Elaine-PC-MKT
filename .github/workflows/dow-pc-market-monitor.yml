@@ -1,9 +1,9 @@
-name: 个人护理和化妆品市场情报-Elaine专属
+name: Elaine专属个人护理和化妆品市场情报
 
 on:
   schedule:
-    # 北京时间每周一、三、五早上8点（UTC时间周一、三、五凌晨0点）
-    - cron: '0 0 * * 1,3,5'
+    # 北京时间每周二、周五早上8点（UTC时间周二、周五凌晨0点）
+    - cron: '0 0 * * 2,5'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
