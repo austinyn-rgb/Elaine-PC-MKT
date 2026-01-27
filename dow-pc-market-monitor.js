@@ -1,25 +1,37 @@
 /**
  * Elaine专属个人护理和化妆品市场情报系统
  * GitHub Actions 专用版本
- * 
+ *
  * 目标用户：陶氏化学大中国区个人护理和化妆品事业部市场经理
  * 工作内容：新产品开发、定价、渠道策略
- * 
+ *
  * 信息范围：
  * - 中国市场为主，兼顾东南亚和欧美市场
  * - 个人护理和化妆品行业动态
  * - 竞争对手、产品创新、原材料、监管、消费者趋势、渠道变化
- * 
+ *
  * 推送时间：每周二、周五早上8点
- * 
+ *
  * 信息时效性：过去3天（72小时）内发生/发布的市场信息
- * 
+ *
  * GitHub Actions 使用说明：
  * - 在仓库 Settings → Secrets and variables → Actions 中配置以下环境变量：
+ *
+ * 【飞书配置】
  *   - FEISHU_APP_ID
  *   - FEISHU_APP_SECRET
  *   - FEISHU_GROUP_CHAT_ID
+ *
+ * 【豆包大模型配置】
  *   - DOUBAO_API_KEY
+ *
+ * 【Email配置】
+ *   - SMTP_HOST：SMTP服务器地址（如 smtp.dow.com）
+ *   - SMTP_PORT：SMTP端口（如 465 或 587）
+ *   - SMTP_USER：发送邮箱账号
+ *   - SMTP_PASS：发送邮箱密码
+ *   - EMAIL_TO：收件人邮箱（多个收件人用英文逗号分隔，如：gxu8@dow.com,austin.yang@outlook.com）
+ *   - EMAIL_FROM：发件人邮箱（可选，默认使用 SMTP_USER）
  */
 
 const axios = require('axios');
@@ -47,7 +59,8 @@ const EMAIL_CONFIG = {
   SMTP_PORT: parseInt(process.env.SMTP_PORT) || 465,     // SMTP端口
   SMTP_USER: process.env.SMTP_USER,                      // 发送邮箱账号（必须配置）
   SMTP_PASS: process.env.SMTP_PASS,                      // 发送邮箱密码（必须配置）
-  EMAIL_TO: process.env.EMAIL_TO || 'gxu8@dow.com',      // 收件人邮箱
+  // 多个收件人用英文逗号分隔，例如：'user1@example.com,user2@example.com,user3@example.com'
+  EMAIL_TO: process.env.EMAIL_TO || 'gxu8@dow.com,austin.yang@outlook.com',  // 收件人邮箱
   EMAIL_FROM: process.env.EMAIL_FROM || process.env.SMTP_USER,  // 发件人邮箱
 };
 
@@ -83,83 +96,57 @@ function getDayOfWeek() {
 async function searchMarketNews() {
   console.log('🔍 搜索个人护理和化妆品市场信息（仅限最新）...\n');
 
+  // 精简后的搜索关键词（30个核心关键词）
   const searchQueries = [
     // ====== 中国市场动态（主市场） ======
     '中国化妆品行业 最新',
-    '中国个人护理市场 最新',
     '中国化妆品监管 最新',
-    '化妆品原料 最新',
-    '硅油 价格 最新',  // 陶氏化学核心产品相关
-    
-    // ====== 中国品牌动态（国货美妆） ======
+    '化妆品原料 价格 最新',
+    '硅油 价格 最新',  // 陶氏化学核心产品
+
+    // ====== 中国头部品牌（国货美妆） ======
     '完美日记 最新',
     '花西子 最新',
     '珀莱雅 最新',
     '薇诺娜 最新',
-    '自然堂 最新',
-    '毛戈平 最新',
-    '润百颜 最新',
-    '夸迪 最新',
-    '韩束 最新',
-    '可复美 最新',
-    
-    // ====== 全球巨头动态 ======
+
+    // ====== 国际巨头动态 ======
     '欧莱雅 中国 最新',
     '宝洁 个人护理 最新',
     '联合利华 中国 最新',
-    '雅诗兰黛 最新',
-    '资生堂 中国 最新',
-    
+
     // ====== 新产品和创新 ======
     '化妆品新品发布 最新',
     '护肤技术 创新 最新',
-    '个人护理原料 创新 最新',
     '功效护肤 最新',
-    
+
     // ====== 消费者趋势 ======
     '成分党 化妆品 最新',
     '纯净美妆 最新',
     '抗衰老 趋势 最新',
     '敏感性肌肤 最新',
-    
+
     // ====== 渠道变化 ======
     '化妆品直播 最新',
     '抖音美妆 最新',
-    '化妆品私域 最新',
     '小红书 美妆 最新',
-    
-    // ====== 小红书爆款和热搜 ======
+
+    // ====== 小红书爆款（合并） ======
     '小红书 爆款 化妆品 最新',
-    '小红书 热搜 护肤 最新',
-    '小红书 测评 美妆 最新',
-    '小红书 推荐 化妆品 最新',
-    '小红书 种草 美妆 最新',
-    '小红书 热门 成分 最新',
-    
-    // ====== 热门成分和新兴品类 ======
+
+    // ====== 热门成分（核心成分） ======
     '玻色因 最新',
     '胜肽 护肤 最新',
     '视黄醇 A醇 最新',
     '烟酰胺 最新',
-    '重组胶原蛋白 最新',
+    '胶原蛋白 最新',
     '玻尿酸 护肤 最新',
-    '早C晚A 最新',
-    '油皮护肤 最新',
-    '敏感肌护肤 最新',
-    '防晒喷雾 最新',
-    '美白精华 最新',
-    '安瓶护肤 最新',
-    
+
     // ====== 东南亚市场（重要增长市场） ======
     '东南亚 化妆品 最新',
-    '印尼 化妆品 最新',
-    '泰国 美妆 最新',
-    '越南 个人护理 最新',
-    
+
     // ====== 欧美市场趋势（参考） ======
     '美国 美妆趋势 最新',
-    '欧洲 化妆品 最新',
-    'K-beauty 最新',
   ];
 
   const allResults = [];
@@ -168,7 +155,7 @@ async function searchMarketNews() {
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 3);
-  
+
   const yesterday8am = new Date(now);
   yesterday8am.setDate(yesterday8am.getDate() - 3);
   yesterday8am.setHours(8, 0, 0, 0);
@@ -178,7 +165,7 @@ async function searchMarketNews() {
 
   const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
   const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-  
+
   const timeRange = `${yesterdayDateStr} 08:00 到 ${todayDateStr} 08:00`;
   console.log(`🕐 搜索时间范围：${timeRange}（过去3天）\n`);
 
@@ -293,7 +280,15 @@ async function searchMarketNews() {
     }
   }
 
-  console.log(`\n✅ 搜索完成，共找到 ${allResults.length} 条最新市场信息\n`);
+  console.log(`\n✅ 搜索完成，共找到 ${allResults.length} 条最新市场信息`);
+
+  // 限制最多处理前50条，避免分析超时
+  if (allResults.length > 50) {
+    console.log(`⚠️ 信息过多，仅分析前50条以提高效率\n`);
+    return allResults.slice(0, 50);
+  }
+
+  console.log('');
   return allResults;
 }
 
@@ -307,7 +302,7 @@ async function analyzeMarketTrends(newsResults) {
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 3);
-  
+
   const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
   const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
@@ -477,7 +472,7 @@ ${newsResults.join('\n\n')}
           'Authorization': `Bearer ${DOUBAO_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        timeout: 180000,
+        timeout: 300000,  // 增加到5分钟，避免大文本分析超时
       }
     );
 
@@ -646,7 +641,7 @@ function formatEmailMessage(data) {
       <h1>🧪 Elaine专属个人护理和化妆品市场情报</h1>
       <p>陶氏化学大中国区个人护理和化妆品事业部</p>
     </div>
-    
+
     <div class="content">
       <div class="info-box">
         <strong>⏰ 更新时间：</strong>${data.analysisTime}（${data.dayOfWeek}）<br>
@@ -674,26 +669,26 @@ function formatEmailMessage(data) {
             <div class="trend-item">
               <div class="trend-title">${index + 1}. ${trend.trend}</div>
               <span class="impact-badge">影响级别: ${'⭐'.repeat(trend.impactLevel)} (${trend.impactLevel}/5)</span>
-              
+
               <div class="label">📍 信息来源：</div>
               <p>${trend.source}</p>
-              
+
               <div class="label">📝 趋势描述：</div>
               <p>${trend.description}</p>
-              
+
               <div class="label">🎯 陶氏相关性：</div>
               <p>${trend.relevanceToDow}</p>
-              
+
               ${trend.opportunity ? `
                 <div class="label">💡 商业机会：</div>
                 <p>${trend.opportunity}</p>
               ` : ''}
-              
+
               ${trend.threat ? `
                 <div class="label">⚠️ 潜在威胁：</div>
                 <p>${trend.threat}</p>
               ` : ''}
-              
+
               ${trend.nextSteps && trend.nextSteps.length > 0 ? `
                 <div class="label">📋 建议行动：</div>
                 <ul style="margin: 5px 0; padding-left: 20px;">
@@ -716,10 +711,10 @@ function formatEmailMessage(data) {
               <span class="impact-badge" style="background-color: ${alert.priceTrend === 'Up' ? '#ff4444' : (alert.priceTrend === 'Down' ? '#44cc44' : '#999')}">
                 价格趋势：${alert.priceTrend}
               </span>
-              
+
               <div class="label">影响：</div>
               <p>${alert.impact}</p>
-              
+
               <div class="label">建议：</div>
               <p>${alert.recommendation}</p>
             </div>
@@ -727,7 +722,7 @@ function formatEmailMessage(data) {
         </div>
       ` : ''}
     </div>
-    
+
     <div class="footer">
       <p>本邮件由 Elaine专属个人护理和化妆品市场情报系统自动发送</p>
       <p>如有疑问，请联系系统管理员</p>
@@ -816,7 +811,7 @@ function formatFeishuMessage(data) {
       msg_type: 'text',
       content: JSON.stringify({
         text: `🧪 Elaine专属个人护理和化妆品市场情报
-        
+
 ⏰ 更新时间：${data.analysisTime}（${data.dayOfWeek}）
 📅 推送周期：每周二、周五早上8点
 
@@ -978,7 +973,7 @@ function formatFeishuMessage(data) {
     data.rawMaterialAlerts.forEach((alert, index) => {
       const trendIcon = alert.priceTrend === 'Up' ? '📈' : (alert.priceTrend === 'Down' ? '📉' : '➡️');
       const trendColor = alert.priceTrend === 'Up' ? 'red' : (alert.priceTrend === 'Down' ? 'green' : 'gray');
-      
+
       cardContent.elements.push({
         tag: 'div',
         text: {
@@ -1012,7 +1007,7 @@ async function sendToFeishu(message) {
     console.log('📤 发送消息到飞书群...');
 
     const url = `https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`;
-    
+
     const response = await axios.post(
       url,
       {
@@ -1054,7 +1049,7 @@ async function main() {
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 3);
-    
+
     const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
     const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
