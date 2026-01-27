@@ -1,0 +1,31 @@
+name: 个人护理和化妆品市场情报-Elaine专属
+
+on:
+  schedule:
+    # 北京时间每周一、三、五早上8点（UTC时间周一、三、五凌晨0点）
+    - cron: '0 0 * * 1,3,5'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: 安装依赖
+        run: npm install axios
+
+      - name: 运行市场情报分析
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_GROUP_CHAT_ID: ${{ secrets.FEISHU_GROUP_CHAT_ID }}
+          DOUBAO_API_KEY: ${{ secrets.DOUBAO_API_KEY }}
+        run: node dow-pc-market-monitor.js
