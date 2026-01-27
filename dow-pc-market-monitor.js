@@ -23,6 +23,7 @@
  */
 
 const axios = require('axios');
+const nodemailer = require('nodemailer');
 
 // ========================================
 // 配置区域 - 支持环境变量和本地配置
@@ -36,6 +37,19 @@ const FEISHU_CONFIG = {
 };
 
 const DOUBAO_API_KEY = process.env.DOUBAO_API_KEY || 'ff4e24a1-14d2-44f4-8d8e-c71131631f24';
+
+// ========================================
+// Email配置
+// ========================================
+
+const EMAIL_CONFIG = {
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.dow.com',  // 陶氏化学企业邮箱SMTP服务器
+  SMTP_PORT: parseInt(process.env.SMTP_PORT) || 465,     // SMTP端口
+  SMTP_USER: process.env.SMTP_USER,                      // 发送邮箱账号（必须配置）
+  SMTP_PASS: process.env.SMTP_PASS,                      // 发送邮箱密码（必须配置）
+  EMAIL_TO: process.env.EMAIL_TO || 'gxu8@dow.com',      // 收件人邮箱
+  EMAIL_FROM: process.env.EMAIL_FROM || process.env.SMTP_USER,  // 发件人邮箱
+};
 
 // ========================================
 // 模型配置
@@ -297,132 +311,132 @@ async function analyzeMarketTrends(newsResults) {
   const yesterdayDateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, '0')}/${String(yesterday.getDate()).padStart(2, '0')}`;
   const todayDateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
-  const systemPrompt = `You are a senior market intelligence analyst specializing in the personal care and cosmetics industry in China, Southeast Asia, and global markets.
+  const systemPrompt = `你是一名资深的市场情报分析专家，专注于中国、东南亚和全球个人护理和化妆品行业。
 
-Your target audience is the Market Manager for Dow Chemical's Personal Care and Cosmetics division in Greater China, responsible for product development, pricing, and channel strategy.
+你的目标受众是陶氏化学大中国区个人护理和化妆品事业部的市场经理，负责产品开发、定价和渠道策略。
 
-## CRITICAL: Time Sensitivity - Information Occurrence Time vs. Reporting Time
+## 关键要求：时效性 - 区分"信息发生时间"和"报道时间"
 
-**IMPORTANT**: You must focus on WHEN INFORMATION HAPPENED/WAS RELEASED, not when it was reported in this analysis!
+**重要**：你必须关注信息发生/发布的时间，而不是在本分析中的报道时间！
 
-### Allowed Information (Occurred/Released ${yesterdayDateStr} 08:00 - ${todayDateStr} 08:00):
-✅ New product launches (occurred in the specified time)
-✅ Regulatory updates (issued in the specified time)
-✅ Raw material price movements (occurred in the specified time)
-✅ Company announcements (M&A, partnerships, executive changes, occurred in the specified time)
-✅ Market research reports (published in the specified time)
-✅ Consumer trend studies (published in the specified time)
-✅ Channel innovations (new platforms, launched in the specified time)
+### 允许的信息（发生/发布时间在 ${yesterdayDateStr} 08:00 - ${todayDateStr} 08:00）：
+✅ 新产品发布（发生在指定时间）
+✅ 监管政策更新（在指定时间发布）
+✅ 原材料价格波动（发生在指定时间）
+✅ 企业公告（并购、合作、人事变动，发生在指定时间）
+✅ 市场研究报告（在指定时间发布）
+✅ 消费者趋势研究（在指定时间发布）
+✅ 渠道创新（新平台、新模式，在指定时间启动）
 
-### EXCLUDED Information (Occurred/Released BEFORE ${yesterdayDateStr} 08:00):
-❌ Quarterly/annual earnings data from weeks ago (even if reported today)
-❌ Policies issued earlier (even if with new interpretations today)
-❌ Events from weeks or months ago (even if with new developments today)
-❌ Retrospective reports (e.g., "Review of last quarter", "Year-end summary")
-❌ Historical market data (even if recently compiled)
+### 排除的信息（发生/发布时间早于 ${yesterdayDateStr} 08:00）：
+❌ 几周前的季度/年度财报数据（即使今天报道）
+❌ 之前发布的政策（即使今天有新解读）
+❌ 几周或几个月前的事件（即使今天有新进展）
+❌ 回顾性报告（如"回顾上个季度"、"年度总结"）
+❌ 历史市场数据（即使最近整理）
 
-## Analysis Framework:
+## 分析框架：
 
-### 1. Market Dimension Analysis
+### 1. 市场维度分析
 
-#### A. China Market (Primary Focus)
-- **Regulatory**: NMPA updates, ingredient restrictions, new registration requirements
-- **Consumer**: "Ingredient-conscious" (成分党) trends, clean beauty, anti-aging, sensitive skin
-- **Channel**: Livestreaming (抖音/快手), private traffic (私域), Xiaohongshu trends, new retail
-- **Competitors**: L'Oréal, P&G, Unilever, Estée Lauder, Shiseido, and domestic brands
+#### A. 中国市场（主要关注点）
+- **监管**：NMPA（国家药监局）更新、成分限制、新注册要求
+- **消费者**："成分党"趋势、纯净美妆、抗衰老、敏感肌
+- **渠道**：直播（抖音/快手）、私域流量、小红书趋势、新零售
+- **竞争对手**：欧莱雅、宝洁、联合利华、雅诗兰黛、资生堂以及国货品牌
 
-#### B. Southeast Asia (Growth Opportunity)
-- Market size and growth rate
-- Consumer preferences (e.g., halal cosmetics, brightening, anti-pollution)
-- Regulatory environment differences
-- Channel landscape (social commerce dominance)
+#### B. 东南亚市场（增长机会）
+- 市场规模和增长率
+- 消费者偏好（如清真化妆品、美白、抗污染）
+- 监管环境差异
+- 渠道格局（社交电商主导）
 
-#### C. Global Markets (Reference)
-- US/Europe trend insights (clean beauty, sustainability, personalization)
-- Ingredient innovations (new actives, delivery systems)
-- Packaging and sustainability trends
+#### C. 全球市场（参考）
+- 美国/欧洲趋势洞察（纯净美妆、可持续性、个性化）
+- 成分创新（新活性成分、递送系统）
+- 包装和可持续性趋势
 
-### 2. Strategic Relevance for Dow Chemical
+### 2. 对陶氏化学的战略相关性
 
-#### A. Product Development Opportunities
-- **Silicone-based products**: Trends in silicone usage (lightweight, non-greasy formulations)
-- **Surfactants**: Natural, mild, sulfate-free trends
-- **Polymers**: Film-forming, texture enhancement, long-lasting performance
-- **Active ingredients delivery**: Encapsulation, sustained release technologies
+#### A. 产品开发机会
+- **硅油产品**：硅油使用趋势（轻盈、无油腻配方）
+- **表面活性剂**：天然、温和、无硫酸盐趋势
+- **聚合物**：成膜、质感提升、长效性能
+- **活性成分递送**：包埋、缓释技术
 
-#### B. Pricing Strategy Insights
-- **Raw material costs**: Price movements affecting formulation costs
-- **Competitive positioning**: Premium vs. mass market trends
-- **Value proposition**: Performance vs. price trade-offs in consumer preferences
+#### B. 定价策略洞察
+- **原材料成本**：影响配方成本的价格波动
+- **竞争定位**：高端 vs. 大众市场趋势
+- **价值主张**：消费者偏好中的性能与价格权衡
 
-#### C. Channel Strategy Implications
-- **E-commerce dominance**: Formulation requirements for online sales (stability, visual appeal)
-- **Livestreaming**: Quick-demo, instant-effect products
-- **Professional channels**: Spa/salon market opportunities
+#### C. 渠道策略影响
+- **电商主导**：在线销售的配方要求（稳定性、视觉吸引力）
+- **直播**：快速演示、即时效果产品
+- **专业渠道**：美容院/沙龙市场机会
 
-### 3. Information Classification
+### 3. 信息分类
 
-**High Impact (⭐⭐⭐⭐⭐)**:
-- Regulatory changes affecting Dow's key ingredients
-- Major competitor product launches using Dow-type ingredients
-- Raw material price volatility >10%
-- New consumer trends with mass market potential
+**高影响（⭐⭐⭐⭐⭐）**：
+- 影响陶氏关键成分的监管变化
+- 使用陶氏类成分的主要竞争对手产品发布
+- 原材料价格波动超过10%
+- 具有大众市场潜力的新消费者趋势
 
-**Medium Impact (⭐⭐⭐⭐)**:
-- Minor competitor updates
-- Gradual consumer preference shifts
-- Niche market trends
-- Channel evolution
+**中等影响（⭐⭐⭐⭐）**：
+- 次要竞争对手更新
+- 逐步的消费者偏好转变
+- 细分市场趋势
+- 渠道演进
 
-**Low Impact (⭐⭐⭐)**:
-- General industry news
-- Non-competitive brand updates
-- Minor market fluctuations
+**低影响（⭐⭐⭐）**：
+- 一般行业新闻
+- 非竞争品牌更新
+- 次要市场波动
 
-### 4. Actionable Recommendations
+### 4. 可执行建议
 
-For each key trend, provide:
-- **Opportunity**: How Dow can leverage this trend
-- **Threat**: Potential risks to Dow's current business
-- **Next Steps**: Recommended actions (research, partnership, product development, etc.)
+对于每个关键趋势，提供：
+- **机会**：陶氏如何利用这一趋势
+- **威胁**：对陶氏当前业务的潜在风险
+- **下一步行动**：推荐行动（研究、合作、产品开发等）
 
-## Output Format (must be pure JSON, no other text):
+## 输出格式（必须是纯JSON，不包含其他文本）：
 
 {
   "analysisTime": "$CURRENT_TIME",
-  "marketSummary": "2-3 sentences summarizing key market movements and their implications for Dow Chemical's PC&C business",
+  "marketSummary": "2-3句话概括关键市场动向及其对陶氏化学个人护理和化妆品业务的影响",
   "marketTrends": [
     {
-      "trend": "Trend Name",
-      "category": "China/Southeast Asia/Global/Regulatory/Consumer/Channel/Raw Materials",
+      "trend": "趋势名称",
+      "category": "中国/东南亚/全球/监管/消费者/渠道/原材料",
       "impactLevel": 5,
-      "description": "Brief description of the trend (must specify when it occurred/was released)",
-      "source": "Information source (e.g., 监管发布/企业公告/市场研究/行业新闻)",
-      "relevanceToDow": "Why this matters for Dow Chemical's PC&C business",
-      "opportunity": "Business opportunity (e.g., new product development, market expansion)",
-      "threat": "Potential risk (e.g., regulatory changes, competitor moves)",
+      "description": "趋势简述（必须说明发生/发布时间）",
+      "source": "信息来源（如：监管发布/企业公告/市场研究/行业新闻）",
+      "relevanceToDow": "这对陶氏化学个人护理和化妆品业务为何重要",
+      "opportunity": "商业机会（如：新产品开发、市场扩张）",
+      "threat": "潜在风险（如：监管变化、竞争对手举措）",
       "nextSteps": [
-        "Recommended action 1",
-        "Recommended action 2"
+        "推荐行动1",
+        "推荐行动2"
       ]
     }
   ],
   "rawMaterialAlerts": [
     {
-      "material": "Raw Material Name (e.g., Silicone, Surfactant)",
+      "material": "原材料名称（如：硅油、表面活性剂）",
       "priceTrend": "Up/Down/Stable",
-      "impact": "Description of impact on formulation costs",
-      "recommendation": "Recommended action (e.g., secure inventory, explore alternatives)"
+      "impact": "对配方成本的影响描述",
+      "recommendation": "推荐行动（如：锁定库存、寻找替代品）"
     }
   ]
 }
 
-## Notes:
-- impactLevel range is 1-5 stars (5 = major strategic impact)
-- Focus on actionable insights for Dow Chemical's PC&C business
-- Prioritize information from China market, then Southeast Asia, then global
-- If no eligible information, return empty arrays
-- Must return pure JSON format, no markdown code block markers`;
+## 注意事项：
+- impactLevel范围是1-5星（5=重大战略影响）
+- 专注于对陶氏化学个人护理和化妆品业务的可执行洞察
+- 优先考虑中国市场信息，然后是东南亚，最后是全球
+- 如果没有符合条件的信息，返回空数组
+- 必须返回纯JSON格式，不包含markdown代码块标记`;
 
   const userMessage = `以下是个人护理和化妆品行业（中国市场为主，兼顾东南亚和欧美市场）的最新市场信息：
 
@@ -522,6 +536,273 @@ async function getFeishuAccessToken() {
       console.error('响应数据:', JSON.stringify(error.response.data));
     }
     throw error;
+  }
+}
+
+// ========================================
+// Email消息：格式化分析结果为HTML格式
+// ========================================
+
+function formatEmailMessage(data) {
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .header p {
+      margin: 10px 0 0;
+      opacity: 0.9;
+    }
+    .content {
+      padding: 30px;
+    }
+    .info-box {
+      background-color: #f9f9f9;
+      border-left: 4px solid #ff6b35;
+      padding: 15px 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .section {
+      margin: 30px 0;
+    }
+    .section h2 {
+      color: #333;
+      border-bottom: 2px solid #ff6b35;
+      padding-bottom: 10px;
+      font-size: 20px;
+    }
+    .trend-item {
+      background-color: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .trend-title {
+      color: #ff6b35;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .impact-badge {
+      display: inline-block;
+      background-color: #ff6b35;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin: 5px 0;
+    }
+    .label {
+      color: #666;
+      font-weight: bold;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .footer {
+      background-color: #333;
+      color: #999;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .empty-message {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Elaine专属个人护理和化妆品市场情报</h1>
+      <p>陶氏化学大中国区个人护理和化妆品事业部</p>
+    </div>
+    
+    <div class="content">
+      <div class="info-box">
+        <strong>⏰ 更新时间：</strong>${data.analysisTime}（${data.dayOfWeek}）<br>
+        <strong>📅 推送周期：</strong>每周二、周五早上8点<br>
+        <strong>⚠️ 时效性：</strong>过去72小时（过去3天）内的市场信息
+      </div>
+
+      ${!data || (!data.marketTrends || data.marketTrends.length === 0) && (!data.rawMaterialAlerts || data.rawMaterialAlerts.length === 0) ? `
+        <div class="empty-message">
+          <p>暂无重要的市场动态或原材料价格波动，请稍后再试。</p>
+        </div>
+      ` : ''}
+
+      ${data.marketSummary ? `
+        <div class="section">
+          <h2>📊 市场概要</h2>
+          <p style="line-height: 1.6;">${data.marketSummary}</p>
+        </div>
+      ` : ''}
+
+      ${data.marketTrends && data.marketTrends.length > 0 ? `
+        <div class="section">
+          <h2>🎯 市场趋势</h2>
+          ${data.marketTrends.map((trend, index) => `
+            <div class="trend-item">
+              <div class="trend-title">${index + 1}. ${trend.trend}</div>
+              <span class="impact-badge">影响级别: ${'⭐'.repeat(trend.impactLevel)} (${trend.impactLevel}/5)</span>
+              
+              <div class="label">📍 信息来源：</div>
+              <p>${trend.source}</p>
+              
+              <div class="label">📝 趋势描述：</div>
+              <p>${trend.description}</p>
+              
+              <div class="label">🎯 陶氏相关性：</div>
+              <p>${trend.relevanceToDow}</p>
+              
+              ${trend.opportunity ? `
+                <div class="label">💡 商业机会：</div>
+                <p>${trend.opportunity}</p>
+              ` : ''}
+              
+              ${trend.threat ? `
+                <div class="label">⚠️ 潜在威胁：</div>
+                <p>${trend.threat}</p>
+              ` : ''}
+              
+              ${trend.nextSteps && trend.nextSteps.length > 0 ? `
+                <div class="label">📋 建议行动：</div>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                  ${trend.nextSteps.map(step => `<li>${step}</li>`).join('')}
+                </ul>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${data.rawMaterialAlerts && data.rawMaterialAlerts.length > 0 ? `
+        <div class="section">
+          <h2>💰 原材料价格预警</h2>
+          ${data.rawMaterialAlerts.map(alert => `
+            <div class="trend-item">
+              <div class="trend-title">
+                ${alert.priceTrend === 'Up' ? '📈' : (alert.priceTrend === 'Down' ? '📉' : '➡️')} ${alert.material}
+              </div>
+              <span class="impact-badge" style="background-color: ${alert.priceTrend === 'Up' ? '#ff4444' : (alert.priceTrend === 'Down' ? '#44cc44' : '#999')}">
+                价格趋势：${alert.priceTrend}
+              </span>
+              
+              <div class="label">影响：</div>
+              <p>${alert.impact}</p>
+              
+              <div class="label">建议：</div>
+              <p>${alert.recommendation}</p>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="footer">
+      <p>本邮件由 Elaine专属个人护理和化妆品市场情报系统自动发送</p>
+      <p>如有疑问，请联系系统管理员</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return {
+    subject: `🧪 Elaine专属市场情报 - ${data.analysisTime}`,
+    html: htmlContent,
+    text: `Elaine专属个人护理和化妆品市场情报系统
+
+更新时间：${data.analysisTime}（${data.dayOfWeek}）
+推送周期：每周二、周五早上8点
+时效性：过去72小时内的市场信息
+
+${data.marketSummary || ''}
+
+市场趋势：${data.marketTrends ? data.marketTrends.length : 0}条
+原材料预警：${data.rawMaterialAlerts ? data.rawMaterialAlerts.length : 0}条
+
+本邮件由 Elaine专属个人护理和化妆品市场情报系统自动发送`
+  };
+}
+
+// ========================================
+// Email API：发送邮件
+// ========================================
+
+async function sendEmail(message) {
+  try {
+    console.log('📧 准备发送邮件...');
+
+    // 检查Email配置
+    if (!EMAIL_CONFIG.SMTP_USER || !EMAIL_CONFIG.SMTP_PASS) {
+      console.warn('⚠️ Email配置不完整，跳过邮件发送');
+      return false;
+    }
+
+    // 创建邮件传输器
+    const transporter = nodemailer.createTransport({
+      host: EMAIL_CONFIG.SMTP_HOST,
+      port: EMAIL_CONFIG.SMTP_PORT,
+      secure: EMAIL_CONFIG.SMTP_PORT === 465, // 465端口使用SSL，587使用STARTTLS
+      auth: {
+        user: EMAIL_CONFIG.SMTP_USER,
+        pass: EMAIL_CONFIG.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false, // 企业证书可能需要此选项
+      },
+    });
+
+    // 邮件内容
+    const mailOptions = {
+      from: EMAIL_CONFIG.EMAIL_FROM,
+      to: EMAIL_CONFIG.EMAIL_TO,
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    };
+
+    // 发送邮件
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ 邮件发送成功！');
+    console.log('📝 邮件ID:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('❌ 发送邮件失败:', error.message);
+    if (error.response) {
+      console.error('SMTP响应:', error.response);
+    }
+    return false;
   }
 }
 
@@ -821,22 +1102,66 @@ async function main() {
     // 步骤4：发送到飞书群
     await sendToFeishu(message);
 
+    // 步骤5：发送Email
+    const emailMessage = formatEmailMessage(analysisData);
+    const emailSent = await sendEmail(emailMessage);
+    if (emailSent) {
+      console.log('✅ Email发送成功\n');
+    } else {
+      console.log('⚠️ Email发送失败或跳过\n');
+    }
+
     console.log('\n========================================');
     console.log('✅ 推送完成！');
     console.log('========================================');
   } catch (error) {
     console.error('\n❌ 推送失败:', error.message);
 
+    // 发送飞书错误通知
     try {
       const errorMessage = {
         msg_type: 'text',
         content: JSON.stringify({
-          text: `❌ 陶氏化学市场情报推送失败\n\n🔍 错误信息：${error.message}\n⏰ 时间：${getCurrentTime()}`
+          text: `❌ Elaine专属市场情报推送失败\n\n🔍 错误信息：${error.message}\n⏰ 时间：${getCurrentTime()}`
         }),
       };
       await sendToFeishu(errorMessage);
     } catch (sendError) {
-      console.error('❌ 发送错误通知失败:', sendError.message);
+      console.error('❌ 发送飞书错误通知失败:', sendError.message);
+    }
+
+    // 发送Email错误通知
+    try {
+      if (EMAIL_CONFIG.SMTP_USER && EMAIL_CONFIG.SMTP_PASS) {
+        const transporter = nodemailer.createTransport({
+          host: EMAIL_CONFIG.SMTP_HOST,
+          port: EMAIL_CONFIG.SMTP_PORT,
+          secure: EMAIL_CONFIG.SMTP_PORT === 465,
+          auth: {
+            user: EMAIL_CONFIG.SMTP_USER,
+            pass: EMAIL_CONFIG.SMTP_PASS,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        });
+
+        await transporter.sendMail({
+          from: EMAIL_CONFIG.EMAIL_FROM,
+          to: EMAIL_CONFIG.EMAIL_TO,
+          subject: `❌ 市场情报系统推送失败 - ${getCurrentTime()}`,
+          html: `
+            <h2>❌ 系统推送失败</h2>
+            <p><strong>错误信息：</strong>${error.message}</p>
+            <p><strong>错误时间：</strong>${getCurrentTime()}</p>
+            <p>请检查系统配置或联系管理员。</p>
+          `,
+          text: `Elaine专属市场情报系统推送失败\n\n错误信息：${error.message}\n错误时间：${getCurrentTime()}\n\n请检查系统配置或联系管理员。`
+        });
+        console.log('✅ Email错误通知发送成功');
+      }
+    } catch (emailError) {
+      console.error('❌ 发送Email错误通知失败:', emailError.message);
     }
 
     process.exit(1);
