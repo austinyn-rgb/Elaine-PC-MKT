@@ -20,7 +20,7 @@ jobs:
           node-version: '20'
 
       - name: 安装依赖
-        run: npm install axios
+        run: npm install axios nodemailer
 
       - name: 运行市场情报分析
         env:
@@ -28,4 +28,9 @@ jobs:
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_GROUP_CHAT_ID: ${{ secrets.FEISHU_GROUP_CHAT_ID }}
           DOUBAO_API_KEY: ${{ secrets.DOUBAO_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: node dow-pc-market-monitor.js
