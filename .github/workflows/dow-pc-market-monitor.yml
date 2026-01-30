@@ -1,8 +1,6 @@
 name: Elaine专属个人护理和化妆品市场情报
 
 on:
-  schedule:
-    - cron: '0 0 * * 2,5'
   workflow_dispatch:
   repository_dispatch:
     types: [run-monitor]
