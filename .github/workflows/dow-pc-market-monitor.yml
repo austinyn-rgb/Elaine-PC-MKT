@@ -2,10 +2,10 @@ name: Elaine专属个人护理和化妆品市场情报
 
 on:
   schedule:
-    # 北京时间每周二、周五早上8点（UTC时间周二、周五凌晨0点,表述为 '0 0 * * 2,5'）
     - cron: '0 0 * * 2,5'
-  workflow_dispatch:  # 允许手动触发
-
+  workflow_dispatch:
+  repository_dispatch:
+    types: [run-monitor]
 jobs:
   analyze:
     runs-on: ubuntu-latest
